@@ -12,13 +12,16 @@ This project predicts breast cancer using Logistic Regression on the Breast Canc
 
 ## 📊 Results
 Accuracy on training data: 0.989010989010989
+
 Accuracy on test data: 0.9736842105263158
+
 Precision: 0.9852941176470589
+
 Recall: 0.9710144927536232
+
 F1 Score: 0.9781021897810219
-Confusion Matrix:
-[[44  1]
- [ 2 67]]
+
+ 
 ROC AUC: 0.9971014492753624
 
 ## 🔗 Dataset
