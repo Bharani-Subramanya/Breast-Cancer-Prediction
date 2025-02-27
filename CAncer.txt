@@ -1,0 +1,178 @@
+import numpy as np  # For numerical operations
+import pandas as pd  # For data manipulation and analysis
+import sklearn.datasets  # For loading datasets
+from sklearn.model_selection import train_test_split,GridSearchCV # For splitting the dataset
+from sklearn.linear_model import LogisticRegression  # For building the logistic regression model
+from sklearn.metrics import accuracy_score  # For evaluating model performance
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix, roc_auc_score, roc_curve
+# Additional libraries
+from sklearn.preprocessing import StandardScaler  # For feature scaling (normalization)
+from sklearn.metrics import confusion_matrix, classification_report  # For detailed evaluation
+import matplotlib.pyplot as plt  # For visualizing results (optional)
+import seaborn as sns  # For more aesthetic and statistical data visualizations (optional)
+
+
+# Load breast cancer dataset
+breast_cancer_dataset = sklearn.datasets.load_breast_cancer()
+data_frame = pd.DataFrame(breast_cancer_dataset.data, columns=breast_cancer_dataset.feature_names)
+data_frame['label'] = breast_cancer_dataset.target
+
+
+# Features and target
+X = data_frame.drop(columns='label', axis=1)
+Y = data_frame['label']
+
+# Train-test split
+X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.2, random_state=2)
+
+
+# Feature scaling
+scaler = StandardScaler()
+X_train = scaler.fit_transform(X_train)
+X_test = scaler.transform(X_test)
+
+
+
+# Hyperparameter tuning with Grid Search
+param_grid = {'C': [0.01, 0.1, 1, 10, 100]}
+model = GridSearchCV(LogisticRegression(max_iter=10000), param_grid, cv=5)
+model.fit(X_train, Y_train)
+
+# Best model
+best_model = model.best_estimator_
+
+
+
+# Predictions
+X_train_prediction = best_model.predict(X_train)
+X_test_prediction = best_model.predict(X_test)
+
+# Accuracy
+training_data_accuracy = accuracy_score(Y_train, X_train_prediction)
+test_data_accuracy = accuracy_score(Y_test, X_test_prediction)
+
+# Evaluation metrics
+precision = precision_score(Y_test, X_test_prediction)
+recall = recall_score(Y_test, X_test_prediction)
+f1 = f1_score(Y_test, X_test_prediction)
+conf_matrix = confusion_matrix(Y_test, X_test_prediction)
+roc_auc = roc_auc_score(Y_test, best_model.predict_proba(X_test)[:, 1])
+fpr, tpr, thresholds = roc_curve(Y_test, best_model.predict_proba(X_test)[:, 1])
+
+print(f'Accuracy on training data: {training_data_accuracy}')
+print(f'Accuracy on test data: {test_data_accuracy}')
+print(f'Precision: {precision}')
+print(f'Recall: {recall}')
+print(f'F1 Score: {f1}')
+print(f'Confusion Matrix:\n{conf_matrix}')
+print(f'ROC AUC: {roc_auc}')
+
+
+
+# ROC Curve
+plt.plot(fpr, tpr, marker='.')
+plt.xlabel('False Positive Rate')
+plt.ylabel('True Positive Rate')
+plt.title('ROC Curve')
+plt.show()
+
+
+# Predictive system without warning
+def predict(input_data):
+    # Convert input_data to a DataFrame with the correct feature names
+    input_data_as_dataframe = pd.DataFrame([input_data], columns=breast_cancer_dataset.feature_names)
+
+    # Scale the input data
+    input_data_scaled = scaler.transform(input_data_as_dataframe)
+
+    # Make the prediction
+    prediction = best_model.predict(input_data_scaled)
+
+    if prediction[0] == 0:
+        return 'The Breast cancer is Malignant'
+    else:
+        return 'The Breast cancer is Benign'
+
+
+# Example usage
+input_data = (18.25,19.98,119.6,1040,0.09463,0.109,0.1127,0.074,0.1794,0.05742,0.4467,0.7732,3.18,53.91,0.004314,0.01382,0.02254,0.01039,0.01369,0.002179,22.88,27.66,153.2,1606,0.1442,0.2576,0.3784,0.1932,0.3063,0.08368)
+result = predict(input_data)
+print(result)
+
+
+# Correlation matrix
+correlation_matrix = data_frame.corr()
+
+# Heatmap for the correlation matrix
+plt.figure(figsize=(12,10))
+sns.heatmap(correlation_matrix, annot=True, cmap='coolwarm', linewidths=0.5)
+plt.title('Feature Correlation Heatmap')
+plt.show()
+
+
+# Confusion matrix heatmap
+plt.figure(figsize=(6,6))
+sns.heatmap(conf_matrix, annot=True, fmt='d', cmap='Blues', cbar=False)
+plt.xlabel('Predicted Label')
+plt.ylabel('True Label')
+plt.title('Confusion Matrix Heatmap')
+plt.show()
+
+
+from sklearn.metrics import precision_recall_curve
+
+# Get predicted probabilities
+probs = best_model.predict_proba(X_test)[:, 1]
+
+# Calculate precision-recall values
+precision_values, recall_values, thresholds_pr = precision_recall_curve(Y_test, probs)
+
+# Plot Precision-Recall Curve
+plt.plot(recall_values, precision_values, marker='.')
+plt.xlabel('Recall')
+plt.ylabel('Precision')
+plt.title('Precision-Recall Curve')
+plt.show()
+
+
+# Calculate log loss for the test data
+from sklearn.metrics import log_loss
+logloss = log_loss(Y_test, probs)
+
+print(f'Log Loss: {logloss}')
+
+# Plotting Log Loss
+plt.figure(figsize=(6, 4))
+plt.plot(thresholds_pr, precision_values[:-1], label='Precision')
+plt.plot(thresholds_pr, recall_values[:-1], label='Recall')
+plt.title('Precision & Recall vs Thresholds')
+plt.xlabel('Threshold')
+plt.ylabel('Score')
+plt.legend()
+plt.show()
+
+
+# ROC Curve
+fpr, tpr, _ = roc_curve(Y_test, probs)
+
+# Plot ROC Curve along with precision and recall
+plt.figure(figsize=(10, 6))
+plt.subplot(1, 2, 1)
+plt.plot(fpr, tpr, marker='.')
+plt.xlabel('False Positive Rate')
+plt.ylabel('True Positive Rate (Recall)')
+plt.title('ROC Curve')
+
+plt.subplot(1, 2, 2)
+plt.plot(recall_values, precision_values, marker='.')
+plt.xlabel('Recall')
+plt.ylabel('Precision')
+plt.title('Precision-Recall Curve')
+
+plt.tight_layout()
+plt.show()
+
+
+
+
+
